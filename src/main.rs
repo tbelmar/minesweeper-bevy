@@ -2,9 +2,7 @@ use bevy::input::InputPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use bevy::utils::HashMap;
-use crossterm::event::{
-    Event as CrosstermEvent, KeyCode as CrosstermKeyCode, KeyEvent as CrosstermKeyEvent,
-};
+use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyEvent};
 use crossterm::style::{self, Attribute, Color, Print};
 use crossterm::terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{cursor, event, execute, queue};
@@ -164,22 +162,22 @@ fn handle_input(
     let Coordinates { mut x, mut y } = player_pos.0;
 
     if event::poll(std::time::Duration::from_millis(100)).unwrap() {
-        if let CrosstermEvent::Key(CrosstermKeyEvent { code, .. }) = event::read().unwrap() {
+        if let CrosstermEvent::Key(KeyEvent { code, .. }) = event::read().unwrap() {
             match code {
-                CrosstermKeyCode::Esc => {
+                KeyCode::Esc => {
                     let mut stdout = stdout();
                     terminal::disable_raw_mode().unwrap();
                     execute!(stdout, Clear(ClearType::All), LeaveAlternateScreen).unwrap();
                     ev_exit.send(AppExit::Success);
                 }
-                CrosstermKeyCode::Char('w') => y -= 1,
-                CrosstermKeyCode::Char('a') => x -= 1,
-                CrosstermKeyCode::Char('s') => y += 1,
-                CrosstermKeyCode::Char('d') => x += 1,
-                CrosstermKeyCode::Char('q') => {
+                KeyCode::Char('w') => y -= 1,
+                KeyCode::Char('a') => x -= 1,
+                KeyCode::Char('s') => y += 1,
+                KeyCode::Char('d') => x += 1,
+                KeyCode::Char('q') => {
                     ev_open_tile.send(OpenTileEvent(player_pos.0, true));
                 }
-                CrosstermKeyCode::Char('e') => {
+                KeyCode::Char('e') => {
                     ev_flag_tile.send(FlagTileEvent(player_pos.0));
                 }
                 _ => {}
