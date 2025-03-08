@@ -24,7 +24,7 @@ const NEIGHBORS: [(i32, i32); 8] = [
 fn main() {
     let settings = GameSettings {
         dimensions: Dimensions(15, 20),
-        bomb_count: 50,
+        bomb_count: 1,
     };
 
     let center: Coordinates = (settings.dimensions.0 / 2, settings.dimensions.1 / 2).into();
@@ -306,7 +306,7 @@ impl Display for Tile {
             "{}",
             if self.open {
                 match self.content {
-                    TileType::Bomb => "* ".to_string(),
+                    TileType::Bomb => "✹ ".to_string(),
                     TileType::Number(0) => "  ".to_string(),
                     TileType::Number(n) => n.to_string() + " ",
                 }
@@ -394,9 +394,11 @@ fn render_board(
                 stdout,
                 cursor::SavePosition,
                 style::SetAttribute(Attribute::Bold),
+                style::SetForegroundColor(Color::Red),
                 cursor::MoveTo(board.width as u16 * 2, 3),
                 Print("YOU LOST "),
                 style::SetAttribute(Attribute::Reset),
+                style::ResetColor,
                 Print(":("),
                 cursor::MoveTo(board.width as u16 * 2, 4),
                 Print("WOMP\nWOMP"),
@@ -410,8 +412,10 @@ fn render_board(
                 cursor::SavePosition,
                 cursor::MoveTo(board.width as u16 * 2, 3),
                 style::SetAttribute(Attribute::Bold),
+                style::SetForegroundColor(Color::Green),
                 Print("WINNER WINNER"),
                 style::SetAttribute(Attribute::Reset),
+                style::ResetColor,
                 cursor::MoveTo(board.width as u16 * 2, 4),
                 Print("CHICKEN DINNER!"),
                 cursor::RestorePosition,
