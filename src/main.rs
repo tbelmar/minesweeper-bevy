@@ -1,10 +1,11 @@
 use bevy::input::InputPlugin;
 use bevy::prelude::*;
+use bevy::state::app::StatesPlugin;
 use bevy::utils::HashMap;
 use crossterm::event::{
     Event as CrosstermEvent, KeyCode as CrosstermKeyCode, KeyEvent as CrosstermKeyEvent,
 };
-use crossterm::style::Print;
+use crossterm::style::{self, Attribute, Color, Print};
 use crossterm::terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{cursor, event, execute, queue};
 use std::fmt::Display;
@@ -24,8 +25,8 @@ const NEIGHBORS: [(i32, i32); 8] = [
 
 fn main() {
     let settings = GameSettings {
-        dimensions: Dimensions(10, 10),
-        bomb_count: 10,
+        dimensions: Dimensions(15, 20),
+        bomb_count: 50,
     };
 
     let center: Coordinates = (settings.dimensions.0 / 2, settings.dimensions.1 / 2).into();
@@ -33,27 +34,34 @@ fn main() {
     App::new()
         .add_plugins(MinimalPlugins)
         .add_plugins(InputPlugin)
+        .add_plugins(StatesPlugin)
+        .init_state::<GameState>()
         .add_event::<OpenTileEvent>()
         .add_event::<FlagTileEvent>()
         .insert_resource(Board::default())
         .insert_resource(settings)
         .insert_resource(PlayerPosition(center))
-        .insert_resource(GameState::Playing)
         .add_systems(Startup, setup_crossterm)
         .add_systems(Startup, initialize_board)
         .add_systems(Update, render_board)
         .add_systems(Update, handle_input)
         .add_systems(
             Update,
-            ((open_tile, open_adjacent_tiles).chain(), flag_tile),
+            (
+                (open_tile, open_adjacent_tiles)
+                    .chain()
+                    .run_if(in_state(GameState::Playing)),
+                flag_tile.run_if(in_state(GameState::Playing)),
+            ),
         )
         .run();
 }
 
-#[derive(Resource)]
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum GameState {
     Won,
     Lost,
+    #[default]
     Playing,
 }
 
@@ -187,7 +195,7 @@ fn handle_input(
 fn open_tile(
     mut board: ResMut<Board>,
     mut evs_open_tile: ParamSet<(EventReader<OpenTileEvent>, EventWriter<OpenTileEvent>)>,
-    mut game_state: ResMut<GameState>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     let mut neighbors_to_open = Vec::<Coordinates>::new();
 
@@ -199,12 +207,12 @@ fn open_tile(
                 tile.open = true;
                 match tile.content {
                     TileType::Bomb => {
-                        *game_state = GameState::Lost;
+                        next_state.set(GameState::Lost);
                     }
                     TileType::Number(_) => {
                         board.tiles_left -= 1;
                         if board.tiles_left == 0 {
-                            *game_state = GameState::Won
+                            next_state.set(GameState::Won);
                         }
                     }
                 }
@@ -236,7 +244,9 @@ fn open_tile(
     }
 
     for pos in neighbors_to_open.iter() {
-        evs_open_tile.p1().send(OpenTileEvent(*pos, false));
+        if let Some(Tile { open: false, .. }) = board.tiles.get(pos) {
+            evs_open_tile.p1().send(OpenTileEvent(*pos, false));
+        }
     }
 }
 
@@ -345,7 +355,11 @@ fn setup_crossterm() {
     execute!(stdout, EnterAlternateScreen, Clear(ClearType::All)).unwrap();
 }
 
-fn render_board(board: Res<Board>, player_pos: Res<PlayerPosition>, game_state: Res<GameState>) {
+fn render_board(
+    board: Res<Board>,
+    player_pos: Res<PlayerPosition>,
+    game_state: Res<State<GameState>>,
+) {
     let mut stdout = stdout();
 
     queue!(stdout, Clear(ClearType::All)).unwrap();
@@ -354,19 +368,40 @@ fn render_board(board: Res<Board>, player_pos: Res<PlayerPosition>, game_state: 
         queue!(
             stdout,
             cursor::MoveTo((x * 2) as u16, y as u16),
+            style::SetForegroundColor(Color::DarkGrey),
             Print(tile),
+            style::ResetColor,
             cursor::MoveTo((player_pos.0.x * 2) as u16, player_pos.0.y as u16)
         )
         .unwrap();
     }
 
-    match game_state.into_inner() {
+    queue!(
+        stdout,
+        cursor::SavePosition,
+        cursor::MoveTo(board.width as u16 * 2, 0),
+        style::SetAttribute(Attribute::Bold),
+        Print("Bevy Minesweeper"),
+        cursor::MoveTo(board.width as u16 * 2, 1),
+        Print("Author: "),
+        style::SetAttribute(Attribute::Reset),
+        Print("tbelmar <tomasbelmarcosta@gmail.com>"),
+        cursor::RestorePosition
+    )
+    .unwrap();
+
+    match game_state.get() {
         GameState::Lost => {
             queue!(
                 stdout,
                 cursor::SavePosition,
-                cursor::MoveTo(board.width as u16 * 2, 0),
-                Print("[YOU LOST]"),
+                style::SetAttribute(Attribute::Bold),
+                cursor::MoveTo(board.width as u16 * 2, 3),
+                Print("YOU LOST "),
+                style::SetAttribute(Attribute::Reset),
+                Print(":("),
+                cursor::MoveTo(board.width as u16 * 2, 4),
+                Print("WOMP\nWOMP"),
                 cursor::RestorePosition,
             )
             .unwrap();
@@ -375,8 +410,12 @@ fn render_board(board: Res<Board>, player_pos: Res<PlayerPosition>, game_state: 
             queue!(
                 stdout,
                 cursor::SavePosition,
-                cursor::MoveTo(board.width as u16 * 2, 0),
-                Print("[YOU WON]"),
+                cursor::MoveTo(board.width as u16 * 2, 3),
+                style::SetAttribute(Attribute::Bold),
+                Print("WINNER WINNER"),
+                style::SetAttribute(Attribute::Reset),
+                cursor::MoveTo(board.width as u16 * 2, 4),
+                Print("CHICKEN DINNER!"),
                 cursor::RestorePosition,
             )
             .unwrap();
@@ -385,8 +424,14 @@ fn render_board(board: Res<Board>, player_pos: Res<PlayerPosition>, game_state: 
             queue!(
                 stdout,
                 cursor::SavePosition,
-                cursor::MoveTo(board.width as u16 * 2, 0),
-                Print(board.tiles_left),
+                cursor::MoveTo(board.width as u16 * 2, 2),
+                Print("[WASD] Move"),
+                cursor::MoveTo(board.width as u16 * 2, 3),
+                Print("[Q] Open"),
+                cursor::MoveTo(board.width as u16 * 2, 4),
+                Print("[E] Flag"),
+                cursor::MoveTo(board.width as u16 * 2, 5),
+                Print("[Esc] Quit"),
                 cursor::RestorePosition
             )
             .unwrap();
