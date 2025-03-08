@@ -170,10 +170,10 @@ fn handle_input(
                     execute!(stdout, Clear(ClearType::All), LeaveAlternateScreen).unwrap();
                     ev_exit.send(AppExit::Success);
                 }
-                KeyCode::Char('w') => y -= 1,
-                KeyCode::Char('a') => x -= 1,
-                KeyCode::Char('s') => y += 1,
-                KeyCode::Char('d') => x += 1,
+                KeyCode::Char('w') | KeyCode::Up => y -= 1,
+                KeyCode::Char('a') | KeyCode::Left => x -= 1,
+                KeyCode::Char('s') | KeyCode::Down => y += 1,
+                KeyCode::Char('d') | KeyCode::Right => x += 1,
                 KeyCode::Char('q') => {
                     ev_open_tile.send(OpenTileEvent(player_pos.0, true));
                 }
