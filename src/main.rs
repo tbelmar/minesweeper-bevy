@@ -24,8 +24,8 @@ const NEIGHBORS: [(i32, i32); 8] = [
 
 fn main() {
     let settings = GameSettings {
-        dimensions: Dimensions(16, 30),
-        bomb_count: 99,
+        dimensions: Dimensions(10, 10),
+        bomb_count: 10,
     };
 
     let center: Coordinates = (settings.dimensions.0 / 2, settings.dimensions.1 / 2).into();
@@ -45,10 +45,7 @@ fn main() {
         .add_systems(Update, handle_input)
         .add_systems(
             Update,
-            (
-                (open_tile, open_adjacent_tiles, check_win_condition).chain(),
-                flag_tile,
-            ),
+            ((open_tile, open_adjacent_tiles).chain(), flag_tile),
         )
         .run();
 }
@@ -73,7 +70,7 @@ struct PlayerPosition(Coordinates);
 struct Dimensions(i32, i32);
 
 #[derive(Event)]
-struct OpenTileEvent(Coordinates);
+struct OpenTileEvent(Coordinates, bool);
 
 #[derive(Event)]
 struct FlagTileEvent(Coordinates);
@@ -172,7 +169,7 @@ fn handle_input(
                 CrosstermKeyCode::Char('s') => y += 1,
                 CrosstermKeyCode::Char('d') => x += 1,
                 CrosstermKeyCode::Char('q') => {
-                    ev_open_tile.send(OpenTileEvent(player_pos.0));
+                    ev_open_tile.send(OpenTileEvent(player_pos.0, true));
                 }
                 CrosstermKeyCode::Char('e') => {
                     ev_flag_tile.send(FlagTileEvent(player_pos.0));
@@ -189,10 +186,14 @@ fn handle_input(
 
 fn open_tile(
     mut board: ResMut<Board>,
-    mut ev_open_tile: EventReader<OpenTileEvent>,
+    mut evs_open_tile: ParamSet<(EventReader<OpenTileEvent>, EventWriter<OpenTileEvent>)>,
     mut game_state: ResMut<GameState>,
 ) {
-    for OpenTileEvent(pos) in ev_open_tile.read() {
+    let mut neighbors_to_open = Vec::<Coordinates>::new();
+
+    for OpenTileEvent(pos, original) in evs_open_tile.p0().read() {
+        let mut flag_count = 0;
+
         if let Some(tile) = board.tiles.get_mut(pos) {
             if !tile.flagged && !tile.open {
                 tile.open = true;
@@ -202,10 +203,40 @@ fn open_tile(
                     }
                     TileType::Number(_) => {
                         board.tiles_left -= 1;
+                        if board.tiles_left == 0 {
+                            *game_state = GameState::Won
+                        }
+                    }
+                }
+            } else if tile.open {
+                for neighbor in NEIGHBORS {
+                    if let Some(Tile {
+                        flagged: true,
+                        open: false,
+                        ..
+                    }) = board.tiles.get(&(*pos + neighbor.into()))
+                    {
+                        flag_count += 1;
                     }
                 }
             }
         }
+
+        if let Some(Tile {
+            content: TileType::Number(n),
+            ..
+        }) = board.tiles.get(pos)
+        {
+            if *original && *n == flag_count {
+                for neighbor in NEIGHBORS {
+                    neighbors_to_open.push(*pos + neighbor.into());
+                }
+            }
+        }
+    }
+
+    for pos in neighbors_to_open.iter() {
+        evs_open_tile.p1().send(OpenTileEvent(*pos, false));
     }
 }
 
@@ -215,7 +246,7 @@ fn open_adjacent_tiles(
 ) {
     let mut neighbors = Vec::<Coordinates>::new();
 
-    for OpenTileEvent(pos) in evs_open_tile.p0().read() {
+    for OpenTileEvent(pos, _) in evs_open_tile.p0().read() {
         if let Some(Tile {
             content: TileType::Number(0),
             ..
@@ -231,19 +262,7 @@ fn open_adjacent_tiles(
     }
 
     for neighbor in neighbors.iter() {
-        evs_open_tile.p1().send(OpenTileEvent(*neighbor));
-    }
-}
-
-fn check_win_condition(
-    board: Res<Board>,
-    mut ev_open_tile: EventReader<OpenTileEvent>,
-    mut game_state: ResMut<GameState>,
-) {
-    for _ in ev_open_tile.read() {
-        if board.tiles_left == 0 {
-            *game_state = GameState::Won
-        }
+        evs_open_tile.p1().send(OpenTileEvent(*neighbor, false));
     }
 }
 
@@ -345,20 +364,33 @@ fn render_board(board: Res<Board>, player_pos: Res<PlayerPosition>, game_state: 
         GameState::Lost => {
             queue!(
                 stdout,
-                cursor::MoveTo(board.width as u16, 0),
-                Print("[YOU LOST]")
+                cursor::SavePosition,
+                cursor::MoveTo(board.width as u16 * 2, 0),
+                Print("[YOU LOST]"),
+                cursor::RestorePosition,
             )
             .unwrap();
         }
         GameState::Won => {
             queue!(
                 stdout,
-                cursor::MoveTo(board.width as u16, 0),
-                Print("[YOU WON]")
+                cursor::SavePosition,
+                cursor::MoveTo(board.width as u16 * 2, 0),
+                Print("[YOU WON]"),
+                cursor::RestorePosition,
             )
             .unwrap();
         }
-        _ => (),
+        _ => {
+            queue!(
+                stdout,
+                cursor::SavePosition,
+                cursor::MoveTo(board.width as u16 * 2, 0),
+                Print(board.tiles_left),
+                cursor::RestorePosition
+            )
+            .unwrap();
+        }
     }
 
     stdout.flush().unwrap();
