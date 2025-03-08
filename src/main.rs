@@ -24,32 +24,27 @@ const NEIGHBORS: [(i32, i32); 8] = [
 fn main() {
     let settings = GameSettings {
         dimensions: Dimensions(15, 20),
-        bomb_count: 1,
+        bomb_count: 50,
     };
 
     let center: Coordinates = (settings.dimensions.0 / 2, settings.dimensions.1 / 2).into();
 
     App::new()
-        .add_plugins(MinimalPlugins)
-        .add_plugins(InputPlugin)
-        .add_plugins(StatesPlugin)
+        .add_plugins((MinimalPlugins, InputPlugin, StatesPlugin))
         .init_state::<GameState>()
         .add_event::<OpenTileEvent>()
         .add_event::<FlagTileEvent>()
         .insert_resource(Board::default())
         .insert_resource(settings)
         .insert_resource(PlayerPosition(center))
-        .add_systems(Startup, setup_crossterm)
-        .add_systems(Startup, initialize_board)
-        .add_systems(Update, render_board)
-        .add_systems(Update, handle_input)
+        .add_systems(Startup, (setup_crossterm, initialize_board))
         .add_systems(
             Update,
             (
-                (open_tile, open_adjacent_tiles)
-                    .chain()
+                render_board,
+                handle_input,
+                ((open_tile, open_adjacent_tiles).chain(), flag_tile)
                     .run_if(in_state(GameState::Playing)),
-                flag_tile.run_if(in_state(GameState::Playing)),
             ),
         )
         .run();
