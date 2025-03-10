@@ -1,14 +1,10 @@
 use bevy::input::InputPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use board::BoardPlugin;
-use input::BoardInputPlugin;
-use rendering::BoardRenderPlugin;
+use board::{input::BoardInputPlugin, rendering::BoardRenderPlugin, BoardPlugin};
 use types::{Coordinates, GameSettings, GameState, PlayerPosition};
 
 mod board;
-mod input;
-mod rendering;
 mod types;
 
 const GAME_SETTINGS: GameSettings = GameSettings {

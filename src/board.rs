@@ -5,6 +5,8 @@ use crate::{
 use bevy::{prelude::*, utils::HashMap};
 use tile::{Tile, TileType};
 
+pub mod input;
+pub mod rendering;
 pub mod tile;
 
 pub struct BoardPlugin;
