@@ -7,6 +7,22 @@ use tile::{Tile, TileType};
 
 pub mod tile;
 
+pub struct BoardPlugin;
+
+impl Plugin for BoardPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<OpenTileEvent>()
+            .add_event::<FlagTileEvent>()
+            .insert_resource(Board::default())
+            .add_systems(Startup, initialize_board)
+            .add_systems(
+                Update,
+                ((open_tile, open_adjacent_tiles).chain(), flag_tile)
+                    .run_if(in_state(GameState::Playing)),
+            );
+    }
+}
+
 #[derive(Resource, Default)]
 pub struct Board {
     pub width: i32,

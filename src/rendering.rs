@@ -10,6 +10,15 @@ use crossterm::{
 };
 use std::io::{stdout, Write};
 
+pub struct BoardRenderPlugin;
+
+impl Plugin for BoardRenderPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup_crossterm)
+            .add_systems(Update, render_board);
+    }
+}
+
 pub fn setup_crossterm() {
     let mut stdout = stdout();
     terminal::enable_raw_mode().unwrap();
