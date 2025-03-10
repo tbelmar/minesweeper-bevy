@@ -1,10 +1,9 @@
-use bevy::{prelude::*, utils::HashMap};
-use tile::{Tile, TileType};
-
 use crate::{
     types::{Coordinates, FlagTileEvent, GameSettings, GameState, OpenTileEvent},
     NEIGHBORS,
 };
+use bevy::{prelude::*, utils::HashMap};
+use tile::{Tile, TileType};
 
 pub mod tile;
 

@@ -1,6 +1,5 @@
-use std::ops::Add;
-
 use bevy::prelude::*;
+use std::ops::Add;
 
 #[derive(Component, PartialEq, Eq, Hash, Copy, Clone)]
 pub struct Coordinates {

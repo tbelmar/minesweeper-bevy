@@ -1,16 +1,14 @@
-use std::io::{stdout, Write};
-
+use crate::{
+    board::Board,
+    types::{Coordinates, GameState, PlayerPosition},
+};
 use bevy::prelude::*;
 use crossterm::{
     cursor, execute, queue,
     style::{self, Attribute, Color, Print},
     terminal::{self, Clear, ClearType, EnterAlternateScreen},
 };
-
-use crate::{
-    board::Board,
-    types::{Coordinates, GameState, PlayerPosition},
-};
+use std::io::{stdout, Write};
 
 pub fn setup_crossterm() {
     let mut stdout = stdout();
