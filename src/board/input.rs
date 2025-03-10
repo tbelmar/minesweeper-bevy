@@ -1,7 +1,7 @@
 use std::io::stdout;
 
 use crate::{board::Board, PlayerPosition};
-use bevy::prelude::*;
+use bevy::{input::InputPlugin, prelude::*};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent},
     execute,
@@ -14,7 +14,8 @@ pub struct BoardInputPlugin;
 
 impl Plugin for BoardInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, handle_input);
+        app.add_plugins(InputPlugin)
+            .add_systems(Update, handle_input);
     }
 }
 

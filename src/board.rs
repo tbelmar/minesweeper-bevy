@@ -1,12 +1,23 @@
 use std::ops::Add;
 
-use crate::{GameSettings, GameState, NEIGHBORS};
+use crate::{GameSettings, GameState};
 use bevy::{prelude::*, utils::HashMap};
 use tile::{Tile, TileType};
 
 pub mod input;
 pub mod rendering;
 pub mod tile;
+
+const NEIGHBORS: [(i32, i32); 8] = [
+    (-1, -1),
+    (0, -1),
+    (1, -1),
+    (-1, 0),
+    (1, 0),
+    (-1, 1),
+    (0, 1),
+    (1, 1),
+];
 
 pub struct BoardPlugin;
 

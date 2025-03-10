@@ -1,4 +1,3 @@
-use bevy::input::InputPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use board::{input::BoardInputPlugin, rendering::BoardRenderPlugin, BoardPlugin, Coordinates};
@@ -10,20 +9,9 @@ const GAME_SETTINGS: GameSettings = GameSettings {
     bomb_count: 50,
 };
 
-const NEIGHBORS: [(i32, i32); 8] = [
-    (-1, -1),
-    (0, -1),
-    (1, -1),
-    (-1, 0),
-    (1, 0),
-    (-1, 1),
-    (0, 1),
-    (1, 1),
-];
-
 fn main() {
     App::new()
-        .add_plugins((MinimalPlugins, InputPlugin, StatesPlugin, MinesweeperPlugin))
+        .add_plugins((MinimalPlugins, StatesPlugin, MinesweeperPlugin))
         .run();
 }
 
@@ -38,7 +26,7 @@ impl Plugin for MinesweeperPlugin {
         app.init_state::<GameState>()
             .insert_resource(GAME_SETTINGS)
             .insert_resource(PlayerPosition(center))
-            .add_plugins((BoardPlugin, BoardRenderPlugin, BoardInputPlugin));
+            .add_plugins((BoardPlugin, BoardInputPlugin, BoardRenderPlugin));
     }
 }
 
