@@ -1,15 +1,14 @@
 use std::io::stdout;
 
-use crate::{
-    board::Board,
-    types::{Coordinates, FlagTileEvent, OpenTileEvent, PlayerPosition},
-};
+use crate::{board::Board, PlayerPosition};
 use bevy::prelude::*;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent},
     execute,
     terminal::{self, Clear, ClearType},
 };
+
+use super::{Coordinates, FlagTileEvent, OpenTileEvent};
 
 pub struct BoardInputPlugin;
 

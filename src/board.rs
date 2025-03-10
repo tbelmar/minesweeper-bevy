@@ -1,7 +1,6 @@
-use crate::{
-    types::{Coordinates, FlagTileEvent, GameSettings, GameState, OpenTileEvent},
-    NEIGHBORS,
-};
+use std::ops::Add;
+
+use crate::{GameSettings, GameState, NEIGHBORS};
 use bevy::{prelude::*, utils::HashMap};
 use tile::{Tile, TileType};
 
@@ -31,6 +30,29 @@ pub struct Board {
     pub height: i32,
     pub tiles: HashMap<Coordinates, Tile>,
     pub tiles_left: i32,
+}
+
+#[derive(Component, PartialEq, Eq, Hash, Copy, Clone)]
+pub struct Coordinates {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl From<(i32, i32)> for Coordinates {
+    fn from((x, y): (i32, i32)) -> Self {
+        Self { x, y }
+    }
+}
+
+impl Add for Coordinates {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
 }
 
 pub fn initialize_board(settings: Res<GameSettings>, mut board: ResMut<Board>) {
@@ -197,3 +219,9 @@ pub fn flag_tile(mut board: ResMut<Board>, mut ev_flag_tile: EventReader<FlagTil
         }
     }
 }
+
+#[derive(Event)]
+pub struct OpenTileEvent(pub Coordinates, pub bool);
+
+#[derive(Event)]
+pub struct FlagTileEvent(pub Coordinates);

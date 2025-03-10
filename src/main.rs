@@ -1,11 +1,9 @@
 use bevy::input::InputPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use board::{input::BoardInputPlugin, rendering::BoardRenderPlugin, BoardPlugin};
-use types::{Coordinates, GameSettings, GameState, PlayerPosition};
+use board::{input::BoardInputPlugin, rendering::BoardRenderPlugin, BoardPlugin, Coordinates};
 
 mod board;
-mod types;
 
 const GAME_SETTINGS: GameSettings = GameSettings {
     dimensions: (15, 20),
@@ -43,3 +41,20 @@ impl Plugin for MinesweeperPlugin {
             .add_plugins((BoardPlugin, BoardRenderPlugin, BoardInputPlugin));
     }
 }
+
+#[derive(Resource, Copy, Clone)]
+pub struct GameSettings {
+    pub dimensions: (i32, i32),
+    pub bomb_count: i32,
+}
+
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameState {
+    Won,
+    Lost,
+    #[default]
+    Playing,
+}
+
+#[derive(Resource)]
+pub struct PlayerPosition(pub Coordinates);

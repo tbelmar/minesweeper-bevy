@@ -1,7 +1,4 @@
-use crate::{
-    board::Board,
-    types::{Coordinates, GameState, PlayerPosition},
-};
+use crate::{board::Board, GameState, PlayerPosition};
 use bevy::prelude::*;
 use crossterm::{
     cursor, execute, queue,
@@ -9,6 +6,8 @@ use crossterm::{
     terminal::{self, Clear, ClearType, EnterAlternateScreen},
 };
 use std::io::{stdout, Write};
+
+use super::Coordinates;
 
 pub struct BoardRenderPlugin;
 
